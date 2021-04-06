@@ -1,24 +1,25 @@
 import numpy as np
 import pandas as pd
 """
-#Azurelane simple tools
-#This is a Georgia-Formidable coordinator based on the file:
+# Azurelane simple tools
+# updated on 2021年4月6日
+# This is a Georgia-Formidable coordinator based on the file:
     "可畏佐治亚调速计算器1.03.xlsx" from @玄虚小圣
 
-#Developer's instructions(by @玄虚小圣):
+# Developer's instructions(by @玄虚小圣):
     这个是用于给可畏-佐治亚这个组合调速用的（当然，其他战列也可以用，原理一样）
-调速原理介绍：
+    调速原理介绍：
     ·可畏的时停有1.5秒，我们需要佐治亚的超重弹在这1.5秒内击中目标。
     ·考虑到一般战斗有3~4轮主炮，所以可畏不能比佐治亚快（可畏先起飞会导致佐治亚吃不到时停）也不能慢太多
     （碰上大凤这种高移动力boss的话，时停结束后的减速效果比时停差很多）
     ·另外注意，战列炮还有0.3秒的抬手前摇。
 
-#用法(by @玄虚小圣)：
+# 用法(by @玄虚小圣)：
     (1)首先，默认可畏第三格是+10的紫青花鱼，如果没这个鱼雷机的话，可畏废掉了自身输出，而且调速也麻烦
     (2)表格里输入佐治亚的面板CD（去舰船装备替换界面自己看）和可畏的面板装填（比如200好感是124）以及可畏受到的科技装填，和猫的装填（填入这两个的总和）
     (3)然后看下面的表格（分为带信标和不带信标两种），从里面找到符合调速区间的战/轰+鱼雷机组合
 
-#以上内容引自 哔哩哔哩Wiki-碧蓝海事局：http://wiki.biligame.com/blhx，
+    #以上内容引自 哔哩哔哩Wiki-碧蓝海事局：http://wiki.biligame.com/blhx，
     
 #原文链接：
     https://wiki.biligame.com/blhx/%E5%8F%AF%E7%95%8F%E4%BD%90%E6%B2%BB%E4%BA%9A%E8%B0%83%E9%80%9F%E8%AE%A1%E7%AE%97%E5%99%A8
@@ -32,23 +33,24 @@ import pandas as pd
     @MonarchGun/Tri381mmT0:      三联装381mmT0主炮，即一期科研高爆、君主炮；
     @IzumoGun/Tri410mmT0:        三联装410mmT0主炮，即一期科研穿甲、出云炮；
     @ChampagneGun/Tri406mm/50T0: 试作型三联装406mm/50主炮T0,即三期科研穿甲、香槟炮；
-    @beacon: Homing beacon T0,归航信标T0；
+    @beacon: Homing beacon T0,归航信标T0；   #暂未实装
+
 """
 
 
 BATTLESHIP_GUN = {'GeorgiaGun':20.65, 'FriedrichGun':19.42, 'MK6_SR':20.02,'MonarchGun':23.14, 'IzumoGun':24.14,
-    'ChampagneGun':24.02,} #以+10单面板为准
-
+    'ChampagneGun':24.02,}  
+    #主炮数据,以+10单面板为准
 FIGHTER = {'天箭':8.98, '萨奇队':9.44, '零战52':9.52, 'VF-17海盗':10.20, '烈风':10.44, '海毒牙':10.60, '地狱猫':10.90,
         '海大黄蜂':10.61, '熊猫':9.64, '虎猫':10.81, }
 BOOMBER = {'麦克拉斯基队':11.71, 'SB2C':11.88, 'XSB3C':11.90, '831中队':10.38}
 TORPEDO = {'青花鱼':9.98, '梭鱼':10.31, '818中队':10.97, '流星':11.37, '火把':11.64, 'TBD(VT-8)':12.04, 
         'TBM(VT-18)':12.04, 'Ju-87':11.17, '飞龙':11.64}
+    #舰载机数据,以+10单面板为准
 
 
-#武器实际冷却时间计算
 def getWeaponCD(initial_spd, total_load):
-    '''
+    '''#武器实际冷却时间计算
     #initial_spd: 原始CD面板，取决于武器本身
     #total_load: 总装填面板，由以下部分构成：
         tchc_ld: 科研系统提供的装填
@@ -139,40 +141,50 @@ class PlayerLoadData:
         
     def getPlayerInfo(self,ship_type=0):
         if not ship_type:
+            #cv_data:ship_type == 0
             return [self.cvtch_ld, self.cvcat_ld, self.cvld_buff]
         else:
+            #bs_data:ship_type != 0
             return [self.bstch_ld, self.bscat_ld, self.bsld_buff]
-        
+       
     
 def getRecommendEquipment(PlayerLoadData,Battleship,CarrierVessel,times,skill_time=1.5):
-     '''
-        提供调速推荐配装结果
-        1.计算调速区间
-        2.构造配装矩阵
-        3.检索矩阵，输出在调速区间内的配装方案
+    '''
+    提供调速推荐配装结果
+    1.计算调速区间
+    2.遍历舰载机数据，计算舰载机平均CD,判定是否落在调速区间
+    3.记录落入调速区间的组合，加入DataFrame
         
-        times: 调速轮数，即希望对几轮主炮进行调速
-     '''
-     #Default:Formidable skill_time = 1.5
-     global FIGHTER, BOOMBER, TORPEDO
-     attack_roll = 0.3
+    times: 调速轮数，即希望对几轮主炮进行调速
+    '''
+    #Default:Formidable skill_time = 1.5
+    global FIGHTER, BOOMBER, TORPEDO
+    attack_roll = 0.3
     #attack_roll: Before the attack roll, 即攻击前摇
-     bsInfo = PlayerLoadData.getPlayerInfo(1)
-     lowerCD = Battleship.getMainGunCD(bsInfo[0],bsInfo[1],bsInfo[2])
-     upperCD = lowerCD + attack_roll + float(skill_time)/float(times)
-     plane1Dict = dict(FIGHTER,**BOOMBER) 
-     cvInfo = PlayerLoadData.getPlayerInfo(0)
-     for torpedo_cd in TORPEDO:
-         for plane1_cd in plane1Dict:
-             average = CarrierVessel.getAverageAircraftCD(cvInfo[0],cvInfo[1],cvInfo[2],plane1_cd,torpedo_cd,TORPEDO['青花鱼']) #固定plane3 = '青花鱼'
-             if average > lowerCD and average < upperCD:
-                 print(CarrierVessel.getAircraftInfo(plane1_cd.keys(),torpedo_cd.keys(),'青花鱼'))
-            
-     
-     
-    
-    
-    
+    bsInfo = PlayerLoadData.getPlayerInfo(1)
+    lowerCD = Battleship.getMainGunCD(bsInfo[0],bsInfo[1],bsInfo[2])
+    upperCD = lowerCD + attack_roll + float(skill_time)/float(times)
+    plane1Dict = dict(FIGHTER,**BOOMBER) 
+    cvInfo = PlayerLoadData.getPlayerInfo(0)
+
+    resultDF = pd.DataFrame()
+
+    for torpedo_name,torpedo_cd in TORPEDO.items():
+        for plane1_name,plane1_cd in plane1Dict.items():
+            average = CarrierVessel.getAverageAircraftCD(cvInfo[0],cvInfo[1],cvInfo[2],plane1_cd,torpedo_cd,TORPEDO['青花鱼']) #固定plane3 = '青花鱼'
+            if average > lowerCD and average < upperCD:
+                resultDF = resultDF.append(CarrierVessel.getAircraftInfo(plane1_name,torpedo_name,'青花鱼'),ignore_index=True)
+
+    return resultDF
+
+
+class QueryCombination:
+    '''
+        封装查询相关方法
+    '''
+    def queryWithTorpedo(resultDF,target):
+        pass
+
 
 if __name__=="__main__":
     
@@ -184,7 +196,9 @@ if __name__=="__main__":
     
     times = 4   #在此定义调速轮数
     
-    
     Formidable = CarrierVessel(124,2,3,3)   #初始化可畏,
+    
     Georgia = Battleship(173,BATTLESHIP_GUN[mainGunName])   #初始化携带指定主炮的佐治亚
-    getRecommendEquipment(PlayerTest,Georgia,Formidable,times)
+    
+    recommend = getRecommendEquipment(PlayerTest,Georgia,Formidable,times)
+    print(recommend)
