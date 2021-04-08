@@ -91,7 +91,7 @@ class CarrierVessel:
         self.plane3_num = int(plane3_num)
         
     def getAircraftInfo(self,plane1,plane2,plane3):
-        aircraftCarried = {'Plane1':(self.plane1_num,plane1), 'Plane2':(self.plane2_num,plane2), 'Plane3':(self.plane3_num,plane3)}
+        aircraftCarried = {'Plane1':plane1, 'Plane2':plane2, 'Plane3':plane3}
         return aircraftCarried
         
     def getAverageAircraftCD(self,tchc_ld,cat_ld,cvld_buff,plane1_cd,plane2_cd,plane3_cd):
@@ -120,17 +120,19 @@ class Battleship:
         
     def getMainGunCD(self,tchc_ld,cat_ld,bsld_buff):
         '''
-            
+           计算主炮装备面板
         '''
         total_load = (self.load+tchc_ld+cat_ld)*(1+bsld_buff)
-        
         mainGunCD = getWeaponCD(self.main_gun_cd, total_load)
-        #计算主炮装备面板
+        
         return mainGunCD
         
         
 
 class PlayerLoadData:
+    '''
+    	玩家外部装填数据
+    '''
     def __init__(self,bstch_ld,bscat_ld,bsld_buff,cvtch_ld,cvcat_ld,cvld_buff):
         self.bstch_ld = bstch_ld
         self.bscat_ld = bscat_ld
@@ -146,44 +148,54 @@ class PlayerLoadData:
         else:
             #bs_data:ship_type != 0
             return [self.bstch_ld, self.bscat_ld, self.bsld_buff]
-       
-    
-def getRecommendEquipment(PlayerLoadData,Battleship,CarrierVessel,times,skill_time=1.5):
-    '''
-    提供调速推荐配装结果
-    1.计算调速区间
-    2.遍历舰载机数据，计算舰载机平均CD,判定是否落在调速区间
-    3.记录落入调速区间的组合，加入DataFrame
-        
-    times: 调速轮数，即希望对几轮主炮进行调速
-    '''
-    #Default:Formidable skill_time = 1.5
-    global FIGHTER, BOOMBER, TORPEDO
-    attack_roll = 0.3
-    #attack_roll: Before the attack roll, 即攻击前摇
-    bsInfo = PlayerLoadData.getPlayerInfo(1)
-    lowerCD = Battleship.getMainGunCD(bsInfo[0],bsInfo[1],bsInfo[2])
-    upperCD = lowerCD + attack_roll + float(skill_time)/float(times)
-    plane1Dict = dict(FIGHTER,**BOOMBER) 
-    cvInfo = PlayerLoadData.getPlayerInfo(0)
 
-    resultDF = pd.DataFrame()
+      
+class Coordinator:
+	'''
+		调速器类型,封装调速相关方法。
+		*由于可畏调速必然绑定 plane3 = '青花鱼'，较为特殊，故暂时单列为独立方法。
+	'''
+	def getFormidableAircraft(PlayerLoadData,Battleship,CarrierVessel,times,skill_time=1.5):
+	    '''
+		    提供调速推荐配装结果
+		    1.计算调速区间
+		    2.遍历舰载机数据，计算舰载机平均CD,判定是否落在调速区间
+		    3.记录落入调速区间的组合，加入DataFrame
+		        
+		    times: 调速轮数，即希望对几轮主炮进行调速
+	    '''
+	    #Default:Formidable skill_time = 1.5
+	    global FIGHTER, BOOMBER, TORPEDO
+	    attack_roll = 0.3
+	    #attack_roll: Before the attack roll, 即攻击前摇
+	    bsInfo = PlayerLoadData.getPlayerInfo(1)
+	    lowerCD = Battleship.getMainGunCD(bsInfo[0],bsInfo[1],bsInfo[2])
+	    upperCD = lowerCD + attack_roll + float(skill_time)/float(times)
+	    plane1Dict = dict(FIGHTER,**BOOMBER) 
+	    cvInfo = PlayerLoadData.getPlayerInfo(0)
 
-    for torpedo_name,torpedo_cd in TORPEDO.items():
-        for plane1_name,plane1_cd in plane1Dict.items():
-            average = CarrierVessel.getAverageAircraftCD(cvInfo[0],cvInfo[1],cvInfo[2],plane1_cd,torpedo_cd,TORPEDO['青花鱼']) #固定plane3 = '青花鱼'
-            if average > lowerCD and average < upperCD:
-                resultDF = resultDF.append(CarrierVessel.getAircraftInfo(plane1_name,torpedo_name,'青花鱼'),ignore_index=True)
+	    resultDF = pd.DataFrame()
 
-    return resultDF
+	    for torpedo_name,torpedo_cd in TORPEDO.items():
+	        for plane1_name,plane1_cd in plane1Dict.items():
+	            average = CarrierVessel.getAverageAircraftCD(cvInfo[0],cvInfo[1],cvInfo[2],plane1_cd,torpedo_cd,TORPEDO['青花鱼']) 
+	            #固定plane3 = '青花鱼'
+	            if average > lowerCD and average < upperCD:
+	                resultDF = resultDF.append(CarrierVessel.getAircraftInfo(plane1_name,torpedo_name,'青花鱼'),ignore_index=True)
+
+	    return resultDF
 
 
 class QueryCombination:
     '''
-        封装查询相关方法
+        查询器类型，封装查询相关方法
     '''
     def queryWithTorpedo(resultDF,target):
-        pass
+        '''检索指定鱼雷机（2号位）的组合'''
+        #condition_col = resultDF.loc[[:]]['Plane2']
+        
+        queryResult = resultDF[(resultDF['Plane2'] == target)]
+        return queryResult
 
 
 if __name__=="__main__":
@@ -200,5 +212,10 @@ if __name__=="__main__":
     
     Georgia = Battleship(173,BATTLESHIP_GUN[mainGunName])   #初始化携带指定主炮的佐治亚
     
-    recommend = getRecommendEquipment(PlayerTest,Georgia,Formidable,times)
-    print(recommend)
+    targetTorpedo = '流星'	#在此定义目标鱼雷机
+
+
+    recommend = Coordinator.getFormidableAircraft(PlayerTest,Georgia,Formidable,times)
+    #print(recommend)
+
+    print(QueryCombination.queryWithTorpedo(recommend,targetTorpedo))
