@@ -94,14 +94,22 @@ class CarrierVessel:
         aircraftCarried = {'Plane1':plane1, 'Plane2':plane2, 'Plane3':plane3}
         return aircraftCarried
         
-    def getAverageAircraftCD(self,tchc_ld,cat_ld,cvld_buff,plane1_cd,plane2_cd,plane3_cd):
+    def getAverageAircraftCD(self,tchc_ld,cat_ld,cvld_buff,plane1_cd,plane2_cd,plane3_cd,beaconFlag=False):
         '''
             根据选取的飞机计算加权平均舰载机CD
         '''
         total_load = (self.load+tchc_ld+cat_ld)*(1+cvld_buff)
         ld_effcy = pow(200/(total_load+100),0.5)
         attack_roll = 0.1   #释放前摇
-        averageAircraftCD = 2.2*(self.plane1_num*plane1_cd + self.plane2_num*plane2_cd + self.plane3_num*plane3_cd)/(self.plane1_num+self.plane2_num+self.plane3_num)*ld_effcy + attack_roll
+        
+        if beaconFlag:
+            beacon = 0.96
+            
+        else:
+            beacon = 1.0
+            
+
+        averageAircraftCD = 2.2*beacon*(self.plane1_num*plane1_cd + self.plane2_num*plane2_cd + self.plane3_num*plane3_cd)/(self.plane1_num+self.plane2_num+self.plane3_num)*ld_effcy + attack_roll
         
         return averageAircraftCD
         
@@ -155,7 +163,7 @@ class Coordinator:
 		调速器类型,封装调速相关方法。
 		*由于可畏调速必然绑定 plane3 = '青花鱼'，较为特殊，故暂时单列为独立方法。
 	'''
-	def getFormidableAircraft(PlayerLoadData,Battleship,CarrierVessel,times,skill_time=1.5):
+	def getFormidableAircraft(PlayerLoadData,Battleship,CarrierVessel,times,beaconFlag=False):
 	    '''
 		    提供调速推荐配装结果
 		    1.计算调速区间
@@ -166,6 +174,7 @@ class Coordinator:
 	    '''
 	    #Default:Formidable skill_time = 1.5
 	    global FIGHTER, BOOMBER, TORPEDO
+	    skill_time = 1.5
 	    attack_roll = 0.3
 	    #attack_roll: Before the attack roll, 即攻击前摇
 	    bsInfo = PlayerLoadData.getPlayerInfo(1)
@@ -178,7 +187,7 @@ class Coordinator:
 
 	    for torpedo_name,torpedo_cd in TORPEDO.items():
 	        for plane1_name,plane1_cd in plane1Dict.items():
-	            average = CarrierVessel.getAverageAircraftCD(cvInfo[0],cvInfo[1],cvInfo[2],plane1_cd,torpedo_cd,TORPEDO['青花鱼']) 
+	            average = CarrierVessel.getAverageAircraftCD(cvInfo[0],cvInfo[1],cvInfo[2],plane1_cd,torpedo_cd,TORPEDO['青花鱼'],beaconFlag) 
 	            #固定plane3 = '青花鱼'
 	            if average > lowerCD and average < upperCD:
 	                resultDF = resultDF.append(CarrierVessel.getAircraftInfo(plane1_name,torpedo_name,'青花鱼'),ignore_index=True)
@@ -190,17 +199,19 @@ class QueryCombination:
     '''
         查询器类型，封装查询相关方法
     '''
-    def queryWithTorpedo(resultDF,target):
+    def queryWithTorpedo(resultDF,target,beaconFlag=False):
         '''检索指定鱼雷机（2号位）的组合'''
         #condition_col = resultDF.loc[[:]]['Plane2']
         
         queryResult = resultDF[(resultDF['Plane2'] == target)]
+        
+        #queryResult.loc[0,'beacon'] = beaconFlag	
         return queryResult
 
 
 if __name__=="__main__":
     
-    #以下为测试
+    #用户定义区
     
     PlayerTest = PlayerLoadData(4,15,0,19,0,0.08)  #在此定义用户外部装填加成，顺序为bstch_ld,bscat_ld,bsld_buff,cvtch_ld,cvcat_ld,cvld_buff
     
@@ -209,13 +220,18 @@ if __name__=="__main__":
     times = 4   #在此定义调速轮数
     
     Formidable = CarrierVessel(124,2,3,3)   #初始化可畏,
-    
+    #beaconFlag = False	#是否携带信标
     Georgia = Battleship(173,BATTLESHIP_GUN[mainGunName])   #初始化携带指定主炮的佐治亚
     
     targetTorpedo = '流星'	#在此定义目标鱼雷机
-
-
-    recommend = Coordinator.getFormidableAircraft(PlayerTest,Georgia,Formidable,times)
-    #print(recommend)
-
-    print(QueryCombination.queryWithTorpedo(recommend,targetTorpedo))
+    
+    #print(Formidable.getAverageAircraftCD(19,0,0.08,FIGHTER['VF-17海盗'],TORPEDO[targetTorpedo],TORPEDO['青花鱼'],True)) 
+    #>> 19.866322876940465
+    
+    #以下为测试函数     
+    for flag in [True,False]:
+        recommend = Coordinator.getFormidableAircraft(PlayerTest,Georgia,Formidable,times,flag)
+        #print(recommend)
+        query = QueryCombination.queryWithTorpedo(recommend,targetTorpedo,flag)
+        print(query)
+        print('beacon:',flag)	#暂时将信标信息外置输出
