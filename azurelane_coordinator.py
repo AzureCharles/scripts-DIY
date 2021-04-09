@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 """
 # Azurelane simple tools
-# updated on 2021年4月6日
+# updated on 2021年4月9日22:25:07
 # This is a Georgia-Formidable coordinator based on the file:
     "可畏佐治亚调速计算器1.03.xlsx" from @玄虚小圣
 
@@ -27,19 +27,22 @@ import pandas as pd
 #Dictionary:
     
     @CD: shorted as 'cool down time' ,即武器冷却时间；
+    @beacon: Homing beacon T0,归航信标T0；
+    
     @GeorgiaGun/Twi457mmMKAT0:   双联装457mmMKAT0主炮，即二期科研六星彩炮、佐治亚炮；
     @FriedrichGun/Twi406mmSKCT0: 双联装406mmSKCT0主炮，即二期科研速射高爆、大帝炮；
     @MK6_SR/Tri406mmMK6T3:       三联装406mmMK6T3主炮，即四星高爆白鹰炮、MK6；
     @MonarchGun/Tri381mmT0:      三联装381mmT0主炮，即一期科研高爆、君主炮；
     @IzumoGun/Tri410mmT0:        三联装410mmT0主炮，即一期科研穿甲、出云炮；
     @ChampagneGun/Tri406mm/50T0: 试作型三联装406mm/50主炮T0,即三期科研穿甲、香槟炮；
-    @beacon: Homing beacon T0,归航信标T0；   #暂未实装
+    @Tri406mmMkD:                试作型三联装406mm主炮MkD == WE_AP_SSR；
+    @OdinGun/Tri305mmSKC39:      试作型三联装305mmSKC39主炮,即奥丁炮；
 
 """
 
 
 BATTLESHIP_GUN = {'GeorgiaGun':20.65, 'FriedrichGun':19.42, 'MK6_SR':20.02,'MonarchGun':23.14, 'IzumoGun':24.14,
-    'ChampagneGun':24.02,}  
+    'ChampagneGun':24.02,'WE_AP_SSR':24.21,'OdinGun':18.20,}  
     #主炮数据,以+10单面板为准
 FIGHTER = {'天箭':8.98, '萨奇队':9.44, '零战52':9.52, 'VF-17海盗':10.20, '烈风':10.44, '海毒牙':10.60, '地狱猫':10.90,
         '海大黄蜂':10.61, '熊猫':9.64, '虎猫':10.81, }
@@ -215,7 +218,7 @@ if __name__=="__main__":
     
     PlayerTest = PlayerLoadData(4,15,0,19,0,0.08)  #在此定义用户外部装填加成，顺序为bstch_ld,bscat_ld,bsld_buff,cvtch_ld,cvcat_ld,cvld_buff
     
-    mainGunName = 'ChampagneGun'    #在此定义目标主炮,以香槟炮为例
+    mainGunName = 'WE_AP_SSR'    #在此定义目标主炮,以香槟炮为例
     
     times = 4   #在此定义调速轮数
     
@@ -224,10 +227,10 @@ if __name__=="__main__":
     Georgia = Battleship(173,BATTLESHIP_GUN[mainGunName])   #初始化携带指定主炮的佐治亚
     
     targetTorpedo = '流星'	#在此定义目标鱼雷机
-    
-    #print(Formidable.getAverageAircraftCD(19,0,0.08,FIGHTER['VF-17海盗'],TORPEDO[targetTorpedo],TORPEDO['青花鱼'],True)) 
-    #>> 19.866322876940465
-    
+    """
+    print(Formidable.getAverageAircraftCD(19,0,0.08,FIGHTER['VF-17海盗'],TORPEDO[targetTorpedo],TORPEDO['青花鱼'],True)) 
+    >> 19.866322876940465
+    """
     #以下为测试函数     
     for flag in [True,False]:
         recommend = Coordinator.getFormidableAircraft(PlayerTest,Georgia,Formidable,times,flag)
