@@ -1,5 +1,5 @@
 # scripts-DIY
-## Azurelane Georgia-Formidable coordinator
+## Azurelane Georgia-Formidable coordinator/碧蓝航线可畏调速器
 
 This is a Georgia-Formidable coordinator based on the file:"可畏佐治亚调速计算器1.03.xlsx" from @玄虚小圣
 
@@ -24,6 +24,8 @@ This is a Georgia-Formidable coordinator based on the file:"可畏佐治亚调�
     
 
 4月9日的版本支持目前大多数主流战列主炮和舰载机（主要是金装），比1.03的xlsx表支持更多。如果有自己感兴趣的装备，直接在文件开头的4个字典里依照格式添加数据即可。需要注意的是调速目标的主炮是在用户定义区手动指定的，程序并不会遍历主炮原始CD的字典，需要用户参照BATTLESHIP_GUN的key指定主炮名称。
+
+另外就像@玄虚小圣原文说的，这个程序理论上应该也适用可畏与其他大炮的调速（如果她们的弹幕没有特别的前摇机制的话）。
     
 后续可能有其他功能比如伤害计算或者更傻瓜化的一键式分析什么的，姑且先大致按照不同对象的属性和方法试着集成起来了。目前可能会有点过于抽象化，调用的时候层次太多什么的（自己写的时候已经发现了，笑）希望能够抛砖引玉吧。
     
