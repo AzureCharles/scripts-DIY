@@ -216,9 +216,9 @@ if __name__=="__main__":
     
     #用户定义区
     
-    PlayerTest = PlayerLoadData(4,15,0,19,0,0.08)  #在此定义用户外部装填加成，顺序为bstch_ld,bscat_ld,bsld_buff,cvtch_ld,cvcat_ld,cvld_buff
+    PlayerTest = PlayerLoadData(6,6,0,23,0,0.08)  #在此定义用户外部装填加成，顺序为bstch_ld,bscat_ld,bsld_buff,cvtch_ld,cvcat_ld,cvld_buff
     
-    mainGunName = 'WE_AP_SSR'    #在此定义目标主炮,以香槟炮为例
+    mainGunName = 'GeorgiaGun'    #在此定义目标主炮,以香槟炮为例
     
     times = 4   #在此定义调速轮数
     
@@ -231,10 +231,15 @@ if __name__=="__main__":
     print(Formidable.getAverageAircraftCD(19,0,0.08,FIGHTER['VF-17海盗'],TORPEDO[targetTorpedo],TORPEDO['青花鱼'],True)) 
     >> 19.866322876940465
     """
-    #以下为测试函数     
+    #以下为测试函数   
+      
     for flag in [True,False]:
         recommend = Coordinator.getFormidableAircraft(PlayerTest,Georgia,Formidable,times,flag)
-        #print(recommend)
-        query = QueryCombination.queryWithTorpedo(recommend,targetTorpedo,flag)
-        print(query)
-        print('beacon:',flag)	#暂时将信标信息外置输出
+        # Attension: Recommended DF might be empty.
+        if recommend.empty:
+            print("None is suitable.")
+        else:
+            print(recommend)
+            query = QueryCombination.queryWithTorpedo(recommend,targetTorpedo,flag)
+            print(query)
+            print('beacon:',flag)	#暂时将信标信息外置输出
